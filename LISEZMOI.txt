@@ -1,0 +1,211 @@
+﻿BORDEREAUX — application locale (version pilote)
+================================================
+
+À quoi ça sert
+--------------
+Remplir un bordereau d'envoi dans un formulaire, l'enregistrer automatiquement,
+l'imprimer (PDF), et retrouver les anciens bordereaux en tapant quelques mots.
+Plus de fichier Word géant : chaque bordereau est un petit document LibreOffice
+rangé tout seul dans un dossier que l'utilisateur n'a jamais besoin d'ouvrir.
+
+
+1. Installation (une seule fois par poste)
+------------------------------------------
+a) Python : installer Python 3.10 ou plus récent (testé avec 3.12), installateur
+   Windows de python.org. Garder les options par défaut (« tcl/tk and IDLE » et
+   « py launcher » doivent rester cochés). Sur un poste sans Internet, télécharger
+   l'installateur sur un autre poste de confiance et le copier.
+   Aucun autre composant n'est à installer.
+b) LibreOffice : déjà présent. Il sert seulement à fabriquer le PDF.
+c) Copier le dossier « Bordereaux » (celui qui contient ce fichier) sur le poste,
+   par exemple dans C:\Outils\Bordereaux.
+d) Créer un raccourci vers « Lancer_Bordereaux.bat » sur le Bureau.
+e) Facultatif : ouvrir « config.ini » avec le Bloc-notes pour indiquer le logo
+   (image PNG ou JPEG : logo + titre ; « logo_hauteur_max » règle sa taille), l'adresse et le
+   téléphone du pied de page, et « destinataire_defaut » (destinataire proposé d'office).
+   Relancer l'application après modification.
+
+
+2. Utilisation
+--------------
+Nouveau bordereau
+  1. Onglet « Nouveau bordereau ». La date du jour est préremplie (modifiable). Il n'y a pas de
+     numéro à saisir : l'application donne à chaque bordereau une RÉFÉRENCE INTERNE (ex. 2026-0017),
+     jamais imprimée. Le bordereau s'imprime avec « N° .......... S.P.A.G/BRH » : le bureau d'ordre
+     attribue le numéro officiel après signature du chef de département.
+  2. Remplir le destinataire et le titre. Les anciennes valeurs sont proposées dans
+     les listes déroulantes.
+  3. Tableau : une ligne par pièce, avec le nombre. Entrée passe au champ suivant ;
+     Entrée dans « Nbr » de la dernière ligne ajoute une ligne ; X supprime la ligne.
+  4. Observation (affichée entre « » à côté de la première ligne).
+  5. Bloc « Concernant » (facultatif) : cocher la case ; le bouton « Pré-remplir »
+     propose nom, grade, PPR, CIN ; ajouter « En fonction à » si besoin.
+  6. « Enregistrer et ouvrir le PDF » : le PDF s'ouvre, imprimer avec Ctrl + P.
+     « Enregistrer seulement » enregistre sans ouvrir.
+
+Rechercher
+  - Onglet « Rechercher » : taper quelques mots (majuscules et accents sans importance,
+     plusieurs mots = tous doivent apparaître). La recherche porte sur tout le contenu,
+     y compris « Concernant ». Filtre par année.
+  - Double-clic : ouvre le PDF. Boutons :
+     Dupliquer  = nouveau bordereau à partir d'un ancien (nouvelle référence, sans n° officiel, date du jour) ;
+     Modifier   = corriger un bordereau (l'ancienne version est conservée) ;
+     Annuler ce bordereau = il reste visible, grisé, et son n° officiel, s'il en a un, n'est pas réutilisé.
+  - Au retour du bordereau signé : le retrouver (recherche, ou case « Sans n° officiel » qui liste ceux
+     qui attendent) > « Saisir le n° officiel » > taper le numéro du bureau d'ordre
+     tel qu'il est écrit (chiffres, lettres, / - . : 116, 116/2026, 116 bis ; 30 caractères au plus). Il est
+     refusé s'il est déjà attribué à un autre bordereau de la même année. Vide = retirer le numéro.
+     Le document est mis à jour (le PDF réimprimé affiche le numéro) ; la recherche trouve ensuite
+     le bordereau par ce numéro.
+  - « Exporter la liste… » (en bas à droite) : enregistre la liste AFFICHÉE (selon la recherche, l'année et
+     les cases cochées) dans un fichier LibreOffice Calc (.ods) ou CSV (Excel) : réf., n° officiel, date,
+     destinataire, titre, observation, état (ANNULÉ), du plus ancien au plus récent. Utile pour un registre,
+     un trimestre, ou pour pointer les bordereaux « Sans n° officiel ». Le tableau des pièces et le bloc
+     « Concernant » n'y figurent pas. Les cellules sont du texte : 0042 reste 0042 et rien n'est calculé.
+     Le fichier s'imprime en paysage, l'en-tête se répète sur chaque page.
+  - Corriger toujours avec « Modifier » dans l'application. Ne pas modifier le fichier
+    directement dans Writer : la recherche ne verrait pas le changement.
+
+
+3. Où sont les données, et tous les fichiers créés par l'application
+--------------------------------------------------------------------
+Tout est dans UN dossier privé de l'utilisateur Windows (rien n'est écrit ailleurs) :
+   C:\Users\<nom>\AppData\Local\BordereauxApp
+Menu Fichier > « Ouvrir le dossier des archives » mène aux documents.
+
+  archives\<année>\<réf.>_<date>.odt   LES BORDEREAUX (un petit document LibreOffice chacun).
+                                        C'est la donnée de référence : à sauvegarder.
+  archives\<année>\<réf.>_<date>.annule petit marqueur : ce bordereau a été annulé.
+  archives\_versions\                   ancienne version d'un bordereau, copiée à chaque modification.
+  index.sqlite3                         l'index de recherche (tableau rapide ; recopie du contenu des
+                                        documents). Peut toujours être refait, voir section 4.
+  pdf\                                  PDF déjà produits (réserve ; se refont tout seuls, supprimables).
+                                        Pendant une création : sous-dossier temporaire « conv_… », supprimé ensuite.
+  sauvegardes\index_AAAA-MM-JJ.sqlite3  copie quotidienne de l'index, les 14 dernières.
+  journaux\journal.log (+ .1 à .4)      journal des événements, voir section 6.
+  lo_profile\                           profil privé de LibreOffice (voir ci-dessous).
+  app.lock                              verrou : empêche d'ouvrir l'application deux fois. Vide, sans danger.
+  erreurs.log                           créé seulement après une erreur inattendue ; détail complet pour le technicien.
+
+Fichiers temporaires qui peuvent apparaître un instant : « .tmp » (enregistrement en cours, remplacé aussitôt),
+« index.sqlite3-journal » (écriture de l'index en cours), « _instantane.sqlite3 » (pendant une sauvegarde zip).
+Ils disparaissent seuls.
+
+En dehors du dossier des données :
+  - Dossier de l'application : un sous-dossier « __pycache__ » apparaît après le premier lancement (cache de
+    Python, sans importance, supprimable).
+  - Fichiers .zip de sauvegarde ou de diagnostic : seulement là où l'utilisateur choisit de les enregistrer.
+  - Windows peut ajouter les documents ouverts à ses « fichiers récents » (comportement normal de Windows).
+  - Quand un bordereau est ouvert dans Writer, LibreOffice crée à côté un fichier « .~lock.….odt# » temporaire.
+
+À propos de « lo_profile »
+  C'est le dossier de réglages que LibreOffice crée pour lui-même quand l'application lui demande de fabriquer un
+  PDF. L'application en utilise un à part pour que la fabrication du PDF ne gêne pas (et ne soit pas gênée par)
+  un Writer ouvert à côté. Il contient des réglages et des modèles vides de LibreOffice (environ 0,5 Mo,
+  une quarantaine de petits fichiers) et aucun bordereau : le test fait sur ce poste d'essai n'y a retrouvé aucun
+  contenu de document. Il n'est utile que pour le PDF. On peut le supprimer sans risque (application fermée) :
+  il est recréé au PDF suivant, qui sera alors plus lent la première fois.
+Chaque poste a ses propres données (version pilote).
+
+
+4. Sauvegarde, restauration et « Reconstruire l'index »
+-------------------------------------------------------
+- Automatique : une copie de l'index est faite chaque jour dans le même dossier. Elle protège d'une erreur,
+  pas de la perte du disque.
+- Manuelle : Fichier > « Faire une copie de sauvegarde (zip) ». Ranger la copie sur un support sûr (clé
+  chiffrée, dossier protégé). Conseil : une fois par semaine. Elle contient des données personnelles.
+- Restauration : décompresser la copie dans le dossier des données, application fermée.
+
+Reconstruire l'index : à quoi ça sert, comment ça marche
+  Chaque bordereau enregistre dans son propre fichier .odt une copie de ses données (dans les propriétés du
+  document, invisible à l'impression). L'index n'est qu'un « sommaire » qui rend la recherche instantanée.
+  « Reconstruire l'index » relit tous les fichiers du dossier archives, et pour chacun :
+    - si sa référence (année + réf. interne) est déjà dans l'index : il est laissé tel quel ;
+    - sinon : il est ajouté à l'index (et signalé annulé s'il a son marqueur .annule).
+  Rien n'est supprimé, rien n'est modifié, aucun fichier n'est réécrit. On peut donc le lancer sans risque.
+  À utiliser quand :
+    - l'index a été supprimé ou ne s'ouvre plus : fermer l'application, renommer index.sqlite3 en
+      index.sqlite3.abime, relancer (un index vide est créé), puis lancer la reconstruction ;
+    - une sauvegarde zip a été restaurée sur un autre poste, ou des fichiers ont été recopiés dans archives ;
+    - un bordereau est dans archives mais n'apparaît pas à la recherche.
+  Limites : (1) un bordereau déjà dans l'index n'est pas mis à jour ; (2) elle relit les données d'origine
+  enregistrées par l'application, pas les retouches faites directement dans Writer ; (3) les dates de création
+  et de modification internes sont remises à « maintenant » (sans effet sur le document) ; (4) un fichier
+  illisible est ignoré et listé dans le message final. Le dossier _versions n'est pas relu.
+
+
+5. Sécurité et confidentialité
+------------------------------
+- Aucune connexion réseau : le programme n'ouvre aucun port, ne contacte aucun serveur et
+  n'utilise aucun module réseau (vérifié par un test automatique : dossier tests, commande
+  « py tests\test_core.py »). Il n'envoie ni ne reçoit rien.
+- Il lance seulement ces programmes sur le poste : LibreOffice (pour fabriquer le PDF), l'application
+  associée aux fichiers (pour les ouvrir) et, uniquement pour arrêter un LibreOffice bloqué ou un PDF annulé,
+  l'utilitaire Windows « taskkill ».
+- Aucune bibliothèque externe : uniquement la bibliothèque standard de Python. Le code tient
+  en 4 fichiers lisibles (core.py, odt_builder.py, gui.py, bordereaux.pyw) et peut être relu
+  par le service informatique.
+- Pas de compte dans l'application : la protection repose sur la session Windows (mot de
+  passe, verrouillage). Recommandé : chiffrement du disque (BitLocker), surtout sur portable.
+- Les documents contiennent des données personnelles (« Concernant » : nom, grade, PPR, CIN).
+  La liste des résultats ne les affiche pas ; la recherche les utilise et le détail les
+  montre. Les copies de sauvegarde en contiennent aussi : les protéger.
+- Les saisies sont contrôlées (longueur, caractères interdits) ; les noms de fichiers sont
+  fabriqués uniquement à partir de la référence interne et de la date.
+
+
+6. Journal, rapport de diagnostic et clics répétés
+--------------------------------------------------
+Clics répétés : la fabrication du PDF se fait en tâche de fond. Pendant ce temps la fenêtre reste utilisable,
+un message en bas de l'écran indique que le PDF est en cours (avec un bouton « Annuler le PDF »), les boutons
+« PDF » sont grisés et les clics répétés ne font rien : un seul PDF est lancé et ouvert. « Enregistrer » est
+grisé une seconde après chaque enregistrement (un double-clic n'enregistre pas deux fois). Si LibreOffice ne
+répond plus après 3 minutes, l'application l'arrête et le dit. Une seule fenêtre de l'application peut être ouverte
+par poste : un second lancement affiche « déjà ouverte » et se ferme.
+
+Journal (journaux\journal.log) : l'application y note chaque événement important, avec l'heure et un court
+identifiant de lancement entre crochets :
+   enregistré / modifié / annulé : référence      pdf : démarrage, terminé en x s, échec (code)
+   enregistrement refusé : code (ex. numero_existe)  sauvegarde zip, reconstruction (compteurs), démarrage/fermeture
+   erreur inattendue : type d'erreur + fichier:ligne du code
+Le journal ne contient JAMAIS : nom, titre, destinataire, lignes du tableau, observation, « Concernant », termes de
+recherche, ni le message des erreurs (qui pourrait citer une saisie). Il garde environ 2,5 Mo au plus (5 fichiers
+tournants) ; les plus anciennes lignes disparaissent seules. Aide > « Ouvrir le dossier des journaux ».
+
+Rapport de diagnostic : Aide > « Créer un rapport de diagnostic (zip) ». Il contient le journal et une fiche
+technique (version, Windows, Python, chemin de LibreOffice, nombre de bordereaux, espace disque libre, contrôle de
+l'index). Il ne contient aucun bordereau ni aucune saisie. Il indique le nom du poste et de la session Windows.
+En cas de problème : l'utilisateur crée ce rapport et le transmet au technicien (clé USB ou messagerie interne).
+Quand une erreur inattendue survient, la fenêtre d'erreur affiche l'heure et un identifiant de session ; le journal
+contient alors une ligne « ERROR … erreur inattendue (…) : TypeErreur | fichier.py:ligne fonction > … » qui indique
+où le programme a échoué, et erreurs.log (dossier des données) contient l'erreur complète avec son message.
+Pour retrouver un incident : noter l'heure ; dans le journal, les lignes WARNING/ERROR autour de cette heure
+disent quoi, et l'identifiant entre crochets regroupe tout ce qui s'est passé pendant le même lancement.
+
+
+7. Limites de la version pilote
+-------------------------------
+- Chaque poste a ses propres références internes et sa propre liste : un bordereau créé sur un poste
+  n'apparaît pas sur les autres. Les numéros officiels viennent du bureau d'ordre, ils ne se
+  chevauchent donc pas ; mais l'application ne détecte un numéro en double que sur le même poste.
+- Dans les anciens documents créés avant cette règle, le numéro saisi à l'époque est conservé comme n° officiel.
+- Pas de compte ni d'historique des utilisateurs.
+- Une modification faite directement dans Writer n'apparaît pas dans la recherche.
+
+
+8. Dépannage
+------------
+- « Le PDF n'a pas pu être créé » : LibreOffice est introuvable. Indiquer son chemin dans
+  config.ini, ligne « libreoffice = » (ex. C:\Program Files\LibreOffice\program\soffice.exe).
+  Le premier PDF est plus lent (une quinzaine de secondes) : LibreOffice prépare son profil.
+- « LibreOffice ne répond pas (délai dépassé) » : réessayer ; si cela se répète, fermer toutes les fenêtres
+  LibreOffice, supprimer le dossier lo_profile (application fermée) et réessayer ; sinon créer un rapport de
+  diagnostic.
+- « L'application est déjà ouverte » : la chercher dans la barre des tâches. Si elle est introuvable, la session
+  Windows garde peut-être un reste : se déconnecter / reconnecter, ou redémarrer le poste.
+- Quitter ou remplacer le formulaire avec une saisie non enregistrée : l'application demande confirmation.
+- Rien ne s'ouvre au double-clic : Python n'est pas installé, ou installé sans « tcl/tk ».
+  Relancer l'installateur Python > Modify > cocher « tcl/tk and IDLE ».
+- Erreur inattendue : un message s'affiche ; le journal en garde la trace (type + ligne de code) et
+  erreurs.log le détail complet. Les bordereaux déjà enregistrés ne sont pas touchés. erreurs.log peut contenir des
+  extraits de saisie : le relire avant de l'envoyer ; préférer le rapport de diagnostic.
